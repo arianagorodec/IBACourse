@@ -33,7 +33,7 @@
 	<% response.sendRedirect("/admin"); %>
 </sec:authorize>
 <sec:authorize access="hasRole('USER')">
-	<% response.sendRedirect("/news"); %>
+	<% response.sendRedirect("/user"); %>
 </sec:authorize>
 		<div class="container-login100">
 			<div class="wrap-login100">
