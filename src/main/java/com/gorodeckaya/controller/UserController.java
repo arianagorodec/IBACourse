@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.PersistenceException;
 import java.sql.SQLException;
+import java.util.List;
 
 @Controller
 public class UserController {
@@ -42,19 +43,33 @@ public class UserController {
             return "user";
         }
         String a = null;
-        try {
-            a = myQueryService.executeQuery(sqlreq);
-        }
-        catch (SQLException | PersistenceException ex){
+        if(sqlreq.toLowerCase().contains("select")) {
+            List<String> list = null;
             try {
-                if (ex.getCause().getCause().getClass().getName().equals("java.sql.SQLException")) {
-                    a=ex.getCause().getCause().getMessage();
+                list = myQueryService.createQuery(sqlreq);
+                model.addAttribute("answer", list);
+            } catch (SQLException | PersistenceException ex) {
+                try {
+                    a = ex.getCause().getCause().getMessage();
                 }
-            } catch (NullPointerException e) {
+                catch (NullPointerException e){
+                }
+                model.addAttribute("answer", a);
             }
         }
-        model.addAttribute("answer", a);
+        else {
+            try {
+                a = myQueryService.executeQuery(sqlreq);
+            } catch (SQLException | PersistenceException ex) {
+                try {
+                    a = ex.getCause().getCause().getMessage();
+                }
+                catch (NullPointerException e){
 
+                }
+            }
+            model.addAttribute("answer", a);
+        }
 
         return "user";
     }

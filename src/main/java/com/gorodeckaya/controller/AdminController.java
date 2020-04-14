@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.PersistenceException;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.List;
 
 
@@ -47,7 +48,7 @@ public class AdminController {
 
     @PostMapping("/admin")
     public String  sendReq(@RequestParam(required = true, defaultValue = "" ) String sqlreq,
-                              Model model) {
+                              Model model)  {
         if(sqlreq.toLowerCase().contains("create")){
             model.addAttribute("answer", "You don`t have access for create!");
             //userList(model);
@@ -59,12 +60,13 @@ public class AdminController {
             try {
                 list = myQueryService.createQuery(sqlreq);
                 model.addAttribute("answer", list);
-                //org.hibernate.hql.internal.ast.QuerySyntaxException
-                //antlr.NoViableAltException
-                //org.hibernate.QueryException
-            } catch (SQLException ex) {
-                a = ex.getMessage();
-                model.addAttribute("answer", a);
+            } catch (SQLException|PersistenceException ex) {
+                try {
+                    a = ex.getCause().getCause().getMessage();
+                    model.addAttribute("answer", a);
+                }
+                catch (NullPointerException e){
+                }
             }
             return "admin";
         }
@@ -73,12 +75,7 @@ public class AdminController {
                 a = myQueryService.executeQuery(sqlreq);
             } catch (SQLException | PersistenceException ex) {
                 try {
-                    if (ex.getCause().getCause().getClass().getName().equals("java.sql.SQLException")) {
-                        a = ex.getCause().getCause().getMessage();
-                    }
-                    if (ex.getCause().getCause().getClass().getName().equals("java.sql.SQLIntegrityConstraintViolationException")) {
-                        a = ex.getCause().getCause().getMessage();
-                    }
+                    a = ex.getCause().getCause().getMessage();
                 } catch (NullPointerException e) {
                 }
             }
