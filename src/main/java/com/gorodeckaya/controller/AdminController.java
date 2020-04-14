@@ -1,5 +1,6 @@
 package com.gorodeckaya.controller;
 
+import com.gorodeckaya.service.impl.MyQueryServiceImpl;
 import com.gorodeckaya.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,10 +10,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.persistence.PersistenceException;
+import java.sql.SQLException;
+import java.util.List;
+
+
 @Controller
 public class AdminController {
     @Autowired
     private UserServiceImpl userService;
+    @Autowired
+    private MyQueryServiceImpl myQueryService;
+
 
     @GetMapping("/admin")
     public String userList(Model model) {
@@ -20,7 +29,7 @@ public class AdminController {
         return "admin";
     }
 
-    @PostMapping("/admin")
+    @PostMapping("/admin/delete")
     public String  deleteUser(@RequestParam(required = true, defaultValue = "" ) Long userId,
                               @RequestParam(required = true, defaultValue = "" ) String action,
                               Model model) {
@@ -30,9 +39,53 @@ public class AdminController {
         return "redirect:/admin";
     }
 
-    @GetMapping("/admin/gt/{userId}")
-    public String  gtUser(@PathVariable("userId") Long userId, Model model) {
+    @GetMapping("/admin/get/{userId}")
+    public String  getUser(@PathVariable("userId") Long userId, Model model) {
         model.addAttribute("allUsers", userService.userGetList(userId));
         return "admin";
     }
+
+    @PostMapping("/admin")
+    public String  sendReq(@RequestParam(required = true, defaultValue = "" ) String sqlreq,
+                              Model model) {
+        if(sqlreq.toLowerCase().contains("create")){
+            model.addAttribute("answer", "You don`t have access for create!");
+            //userList(model);
+            return "admin";
+        }
+        String a = null;
+        if(sqlreq.toLowerCase().contains("select")){
+            List<String> list = null;
+            try {
+                list = myQueryService.createQuery(sqlreq);
+                model.addAttribute("answer", list);
+                //org.hibernate.hql.internal.ast.QuerySyntaxException
+                //antlr.NoViableAltException
+                //org.hibernate.QueryException
+            } catch (SQLException ex) {
+                a = ex.getMessage();
+                model.addAttribute("answer", a);
+            }
+            return "admin";
+        }
+        else {
+            try {
+                a = myQueryService.executeQuery(sqlreq);
+            } catch (SQLException | PersistenceException ex) {
+                try {
+                    if (ex.getCause().getCause().getClass().getName().equals("java.sql.SQLException")) {
+                        a = ex.getCause().getCause().getMessage();
+                    }
+                    if (ex.getCause().getCause().getClass().getName().equals("java.sql.SQLIntegrityConstraintViolationException")) {
+                        a = ex.getCause().getCause().getMessage();
+                    }
+                } catch (NullPointerException e) {
+                }
+            }
+            model.addAttribute("answer", a);
+
+            return "admin";
+        }
+    }
+
 }
