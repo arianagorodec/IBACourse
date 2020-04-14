@@ -1,0 +1,1 @@
+INSERT INTO `dd`.`user` (`password`, `role`, `username`) VALUES ('$2a$10$ReB6ePAdU8hQAcsehubIJeVX3sd9R/qQUpwXzCuDzVtfRLJdoHVwW', '2', 'admin');
