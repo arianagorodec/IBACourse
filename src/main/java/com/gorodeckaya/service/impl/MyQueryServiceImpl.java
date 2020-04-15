@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
 import java.util.List;
 
 @Service
@@ -26,8 +25,13 @@ public class MyQueryServiceImpl implements MyQueryService {
         em.createNativeQuery(query).executeUpdate();
         return "success";
     }
-    public List createQuery(String query) throws SQLException {
-        //em.createQuery(query);
+    public List<Object[]> createQuery(String query) throws SQLException {
         return em.createNativeQuery(query).getResultList();
+    }
+    public List<Object> tableSearch() throws SQLException {
+        return em.createNativeQuery("SHOW TABLES;").getResultList();
+    }
+    public List<Object[]> tableDataSearch(String table) throws SQLException {
+        return em.createNativeQuery("DESCRIBE "+table+";").getResultList();
     }
 }
