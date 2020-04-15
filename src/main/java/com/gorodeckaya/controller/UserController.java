@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -26,51 +25,38 @@ public class UserController {
     @PostMapping("/user")
     public String  sendReq(@RequestParam(required = true, defaultValue = "" ) String sqlreq,
                            Model model)  {
-        if(sqlreq.toLowerCase().contains("insert")){
-            model.addAttribute("answer", "You don`t have access for insert!");
-            return "user";
-        }
-        if(sqlreq.toLowerCase().contains("delete")){
-            model.addAttribute("answer", "You don`t have access for delete!");
-            return "user";
-        }
-        if(sqlreq.toLowerCase().contains("update")){
-            model.addAttribute("answer", "You don`t have access for update!");
-            return "user";
-        }
-        if(sqlreq.toLowerCase().contains("create")){
-            model.addAttribute("answer", "You don`t have access for create!");
-            return "user";
-        }
-        String a = null;
-        if(sqlreq.toLowerCase().contains("select")) {
-            List<String> list = null;
+        String a = "";
+        if(sqlreq.toLowerCase().contains("select")){
+            List<Object[]> list = null;
             try {
                 list = myQueryService.createQuery(sqlreq);
-                model.addAttribute("answer", list);
-            } catch (SQLException | PersistenceException ex) {
-                try {
-                    a = ex.getCause().getCause().getMessage();
-                }
-                catch (NullPointerException e){
+                for (Object[] i : list) {
+                    int k = 0;
+                    try {
+                        while (true) {
+                            a+=(i[k]+" ");
+                            k++;
+                        }
+                    }
+                    catch (ArrayIndexOutOfBoundsException e){
+                        a+="\n";
+                        continue;
+                    }
                 }
                 model.addAttribute("answer", a);
-            }
-        }
-        else {
-            try {
-                a = myQueryService.executeQuery(sqlreq);
-            } catch (SQLException | PersistenceException ex) {
+            } catch (SQLException|PersistenceException ex) {
                 try {
                     a = ex.getCause().getCause().getMessage();
+                    model.addAttribute("answer", a);
                 }
                 catch (NullPointerException e){
-
                 }
             }
-            model.addAttribute("answer", a);
+            return "admin";
         }
-
-        return "user";
+        else {
+            model.addAttribute("answer", "You don`t have access!");
+            return "user";
+        }
     }
 }

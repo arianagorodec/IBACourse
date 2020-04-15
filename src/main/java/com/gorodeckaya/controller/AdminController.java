@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.PersistenceException;
 import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
 import java.util.List;
 
 
@@ -26,7 +25,8 @@ public class AdminController {
 
     @GetMapping("/admin")
     public String userList(Model model) {
-        model.addAttribute("allUsers", userService.allUsers());
+        //model.addAttribute("allUsers", userService.allUsers());
+        tableInfo();
         return "admin";
     }
 
@@ -54,12 +54,70 @@ public class AdminController {
             //userList(model);
             return "admin";
         }
-        String a = null;
+        String a = "";
         if(sqlreq.toLowerCase().contains("select")){
-            List<String> list = null;
+            List<Object[]> list = null;
             try {
                 list = myQueryService.createQuery(sqlreq);
-                model.addAttribute("answer", list);
+                for (Object[] i : list) {
+                    int k = 0;
+                    try {
+                        while (true) {
+                            a+=(i[k]+" ");
+                            k++;
+                        }
+                    }
+                    catch (ArrayIndexOutOfBoundsException e){
+                        a+="\n";
+                        continue;
+                    }
+                }
+                model.addAttribute("answer", a);
+            } catch (SQLException|PersistenceException ex) {
+                try {
+                    a = ex.getCause().getCause().getMessage();
+                    model.addAttribute("answer", a);
+                }
+                catch (NullPointerException e){
+                }
+            }
+            return "admin";
+        }
+        else if(sqlreq.toLowerCase().contains("show")){
+            List<Object[]> list = null;
+            try {
+                list = myQueryService.createQuery(sqlreq);
+                for (Object i:list)
+                    a+=i+" ";
+                model.addAttribute("answer", a);
+            } catch (SQLException|PersistenceException ex) {
+                try {
+                    a = ex.getCause().getCause().getMessage();
+                    model.addAttribute("answer", a);
+                }
+                catch (NullPointerException e){
+                }
+            }
+            return "admin";
+        }
+        else if(sqlreq.toLowerCase().contains("describe")){
+            List<Object[]> list = null;
+            try {
+                list = myQueryService.createQuery(sqlreq);
+                for (Object[] i : list) {
+                    int k = 0;
+                    try {
+                        while (true) {
+                            a+=(i[k]+" ");
+                            k++;
+                        }
+                    }
+                    catch (ArrayIndexOutOfBoundsException e){
+                        a+="\n";
+                        continue;
+                    }
+                }
+                model.addAttribute("answer", a);
             } catch (SQLException|PersistenceException ex) {
                 try {
                     a = ex.getCause().getCause().getMessage();
@@ -85,4 +143,37 @@ public class AdminController {
         }
     }
 
+    void tableInfo() {
+        String a = "";
+        List<Object> tableList = null;
+        List<Object[]> tableDateList = null;
+        try {
+            tableList = myQueryService.tableSearch();
+            for (Object i : tableList) {
+                a += i + ":";
+                tableDateList = myQueryService.tableDataSearch((String) i);
+                for (Object[] j : tableDateList) {
+                    int k = 0;
+                    try {
+                        while (true) {
+                            String b = (String) j[k];
+                            if (k == 0)
+                                a += (j[k] + ", ");
+                            k++;
+                        }
+                    } catch (ArrayIndexOutOfBoundsException e) {
+                        continue;
+                    }
+                }
+                a += "   !   ";
+            }
+            System.out.println(a);
+        } catch (SQLException | PersistenceException ex) {
+            try {
+                a = ex.getCause().getCause().getMessage();
+                //model.addAttribute("answer", a);
+            } catch (NullPointerException e) {
+            }
+        }
+    }
 }
