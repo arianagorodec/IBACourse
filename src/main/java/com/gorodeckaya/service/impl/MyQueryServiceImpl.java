@@ -1,5 +1,6 @@
 package com.gorodeckaya.service.impl;
 
+import com.gorodeckaya.entity.MyQuery;
 import com.gorodeckaya.repository.MyQueryRepository;
 import com.gorodeckaya.service.MyQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,5 +34,9 @@ public class MyQueryServiceImpl implements MyQueryService {
     }
     public List<Object[]> tableDataSearch(String table) throws SQLException {
         return em.createNativeQuery("DESCRIBE "+table+";").getResultList();
+    }
+    @Override
+    public MyQuery addMyQuery(MyQuery myQuery) {
+        return myQueryRepository.saveAndFlush(myQuery);
     }
 }

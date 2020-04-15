@@ -1,5 +1,6 @@
 package com.gorodeckaya.controller;
 
+import com.gorodeckaya.entity.MyQuery;
 import com.gorodeckaya.service.impl.MyQueryServiceImpl;
 import com.gorodeckaya.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.PersistenceException;
+import java.security.Principal;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -48,7 +50,10 @@ public class AdminController {
 
     @PostMapping("/admin")
     public String  sendReq(@RequestParam(required = true, defaultValue = "" ) String sqlreq,
-                              Model model)  {
+                              Model model, Principal principal)  {
+        MyQuery myQuery= new MyQuery(sqlreq,principal.getName());
+        myQueryService.addMyQuery(myQuery);
+
         if(sqlreq.toLowerCase().contains("create")){
             model.addAttribute("answer", "You don`t have access for create!");
             //userList(model);

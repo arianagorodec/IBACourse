@@ -17,4 +17,9 @@ public class MyQuery {
     private String query;
     @Column(name = "user")
     private String user;
+
+    public MyQuery(String query, String user) {
+        this.query = query;
+        this.user = user;
+    }
 }

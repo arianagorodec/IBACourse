@@ -1,5 +1,6 @@
 package com.gorodeckaya.controller;
 
+import com.gorodeckaya.entity.MyQuery;
 import com.gorodeckaya.service.impl.MyQueryServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.PersistenceException;
+import java.security.Principal;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -24,7 +26,9 @@ public class UserController {
 
     @PostMapping("/user")
     public String  sendReq(@RequestParam(required = true, defaultValue = "" ) String sqlreq,
-                           Model model)  {
+                           Model model, Principal principal)  {
+        MyQuery myQuery= new MyQuery(sqlreq,principal.getName());
+        myQueryService.addMyQuery(myQuery);
         String a = "";
         if(sqlreq.toLowerCase().contains("select")){
             List<Object[]> list = null;
