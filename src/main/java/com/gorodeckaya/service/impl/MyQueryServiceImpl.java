@@ -35,6 +35,9 @@ public class MyQueryServiceImpl implements MyQueryService {
     public List<Object[]> tableDataSearch(String table) throws SQLException {
         return em.createNativeQuery("DESCRIBE "+table+";").getResultList();
     }
+    public List<Object[]> findLogUser(String username) throws SQLException {
+        return em.createNativeQuery("SELECT * FROM query WHERE user = '"+username+"';").getResultList();
+    }
     @Override
     public MyQuery addMyQuery(MyQuery myQuery) {
         return myQueryRepository.saveAndFlush(myQuery);
