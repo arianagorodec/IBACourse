@@ -21,7 +21,6 @@ public class RegistrationController {
     @GetMapping("/registration")
     public String registration(Model model) {
         model.addAttribute("userForm", new User());
-
         return "registration";
     }
 
@@ -32,11 +31,11 @@ public class RegistrationController {
             return "registration";
         }
         if (!userForm.getPassword().equals(userForm.getPasswordConfirm())){
-            model.addAttribute("passwordError", "Пароли не совпадают");
+            model.addAttribute("passwordError", "Passwords don't match");
             return "registration";
         }
         if (!userService.saveUser(userForm)){
-            model.addAttribute("usernameError", "Пользователь с таким именем уже существует");
+            model.addAttribute("usernameError", "User with the same name already exists");
             return "registration";
         }
 

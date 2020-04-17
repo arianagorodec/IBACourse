@@ -1,8 +1,12 @@
 package com.gorodeckaya.controller;
 
 import com.gorodeckaya.entity.MyQuery;
+import com.gorodeckaya.entity.Table;
 import com.gorodeckaya.service.impl.MyQueryServiceImpl;
+import com.gorodeckaya.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,55 +16,102 @@ import org.springframework.web.bind.annotation.RequestParam;
 import javax.persistence.PersistenceException;
 import java.security.Principal;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
 public class UserController {
     @Autowired
+    private UserServiceImpl userService;
+    @Autowired
     private MyQueryServiceImpl myQueryService;
 
+    private List<Table> tableList = new ArrayList<>();
+
     @GetMapping("/user")
-    public String userList(Model model) {
+    public String tableList(Model model) {
+        tableInfo();
+        model.addAttribute("allTables", tableList);
         return "user";
     }
+
+    @GetMapping("/user/log")
+    public String logUserList(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        try {
+            List<Object[]> list = myQueryService.findLogUser(auth.getName());
+            model.addAttribute("allQuery", list);
+            model.addAttribute("allTables", tableList);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "user";
+    }
+
 
     @PostMapping("/user")
     public String  sendReq(@RequestParam(required = true, defaultValue = "" ) String sqlreq,
                            Model model, Principal principal)  {
         MyQuery myQuery= new MyQuery(sqlreq,principal.getName());
         myQueryService.addMyQuery(myQuery);
+
         String a = "";
-        if(sqlreq.toLowerCase().contains("select")){
-            List<Object[]> list = null;
-            try {
-                list = myQueryService.createQuery(sqlreq);
-                for (Object[] i : list) {
-                    int k = 0;
+        if(!sqlreq.toLowerCase().contains("user")) {
+            if(!sqlreq.toLowerCase().contains("query")) {
+                if (sqlreq.toLowerCase().contains("select")) {
+                    List<Object[]> list = null;
                     try {
-                        while (true) {
-                            a+=(i[k]+" ");
-                            k++;
+                        list = myQueryService.createQuery(sqlreq);
+                        model.addAttribute("allTables", tableList);
+                        model.addAttribute("allString", list);
+                    } catch (SQLException | PersistenceException ex) {
+                        try {
+                            a = ex.getCause().getCause().getMessage();
+                            model.addAttribute("allTables", tableList);
+                            model.addAttribute("answer", a);
+                        } catch (NullPointerException e) {
                         }
                     }
-                    catch (ArrayIndexOutOfBoundsException e){
-                        a+="\n";
-                        continue;
-                    }
-                }
-                model.addAttribute("answer", a);
-            } catch (SQLException|PersistenceException ex) {
-                try {
-                    a = ex.getCause().getCause().getMessage();
+                } else {
+                    a = "You don't have access";
+                    model.addAttribute("allTables", tableList);
                     model.addAttribute("answer", a);
                 }
-                catch (NullPointerException e){
-                }
             }
-            return "admin";
         }
         else {
-            model.addAttribute("answer", "You don`t have access!");
-            return "user";
+            a = "You don't have access";
+            model.addAttribute("allTables", tableList);
+            model.addAttribute("answer", a);
+        }
+        return "user";
+    }
+
+    void tableInfo() {
+        List<Object> tables = null;
+        List<Object[]> tableDateList = null;
+        tableList=new ArrayList<>();
+        try {
+            tables = myQueryService.tableSearch();
+            for (Object name : tables) {
+                Table t = new Table();
+                if(!((String)name).equals("query") ) {
+                    if (!((String) name).equals("user")) {
+                        t.setName((String) name);
+                        tableDateList = myQueryService.tableDataSearch((String) name);
+                        for (Object[] fields : tableDateList) {
+                            int k = 0;
+                            try {
+                                t.addField((String) fields[k]);
+                            } catch (ArrayIndexOutOfBoundsException e) {
+                                continue;
+                            }
+                        }
+                        tableList.add(t);
+                    }
+                }
+            }
+        } catch (SQLException | PersistenceException ex) {
         }
     }
 }

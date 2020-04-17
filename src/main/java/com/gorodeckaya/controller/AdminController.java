@@ -1,19 +1,22 @@
 package com.gorodeckaya.controller;
 
 import com.gorodeckaya.entity.MyQuery;
+import com.gorodeckaya.entity.Table;
 import com.gorodeckaya.service.impl.MyQueryServiceImpl;
 import com.gorodeckaya.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.PersistenceException;
 import java.security.Principal;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -24,29 +27,28 @@ public class AdminController {
     @Autowired
     private MyQueryServiceImpl myQueryService;
 
+    private List<Table> tableList = new ArrayList<>();
 
     @GetMapping("/admin")
-    public String userList(Model model) {
-        //model.addAttribute("allUsers", userService.allUsers());
+    public String tableList(Model model) {
         tableInfo();
+        model.addAttribute("allTables", tableList);
         return "admin";
     }
 
-    @PostMapping("/admin/delete")
-    public String  deleteUser(@RequestParam(required = true, defaultValue = "" ) Long userId,
-                              @RequestParam(required = true, defaultValue = "" ) String action,
-                              Model model) {
-        if (action.equals("delete")){
-            userService.deleteUser(userId);
+    @GetMapping("/admin/log")
+    public String logUserList(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        try {
+            List<Object[]> list = myQueryService.findLogUser(auth.getName());
+            model.addAttribute("allQuery", list);
+            model.addAttribute("allTables", tableList);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        return "redirect:/admin";
-    }
-
-    @GetMapping("/admin/get/{userId}")
-    public String  getUser(@PathVariable("userId") Long userId, Model model) {
-        model.addAttribute("allUsers", userService.userGetList(userId));
         return "admin";
     }
+
 
     @PostMapping("/admin")
     public String  sendReq(@RequestParam(required = true, defaultValue = "" ) String sqlreq,
@@ -54,131 +56,84 @@ public class AdminController {
         MyQuery myQuery= new MyQuery(sqlreq,principal.getName());
         myQueryService.addMyQuery(myQuery);
 
-        if(sqlreq.toLowerCase().contains("create")){
-            model.addAttribute("answer", "You don`t have access for create!");
-            //userList(model);
-            return "admin";
-        }
         String a = "";
-        if(sqlreq.toLowerCase().contains("select")){
-            List<Object[]> list = null;
-            try {
-                list = myQueryService.createQuery(sqlreq);
-                for (Object[] i : list) {
-                    int k = 0;
+        if(!sqlreq.toLowerCase().contains("user")) {
+            if(!sqlreq.toLowerCase().contains("query")) {
+                if (sqlreq.toLowerCase().contains("select")) {
+                    List<Object[]> list = null;
                     try {
-                        while (true) {
-                            a+=(i[k]+" ");
-                            k++;
+                        list = myQueryService.createQuery(sqlreq);
+                        model.addAttribute("allTables", tableList);
+                        model.addAttribute("allString", list);
+                    } catch (SQLException | PersistenceException ex) {
+                        try {
+                            a = ex.getCause().getCause().getMessage();
+                            model.addAttribute("allTables", tableList);
+                            model.addAttribute("answer", a);
+                        } catch (NullPointerException e) {
                         }
                     }
-                    catch (ArrayIndexOutOfBoundsException e){
-                        a+="\n";
-                        continue;
-                    }
-                }
-                model.addAttribute("answer", a);
-            } catch (SQLException|PersistenceException ex) {
-                try {
-                    a = ex.getCause().getCause().getMessage();
-                    model.addAttribute("answer", a);
-                }
-                catch (NullPointerException e){
-                }
-            }
-            return "admin";
-        }
-        else if(sqlreq.toLowerCase().contains("show")){
-            List<Object[]> list = null;
-            try {
-                list = myQueryService.createQuery(sqlreq);
-                for (Object i:list)
-                    a+=i+" ";
-                model.addAttribute("answer", a);
-            } catch (SQLException|PersistenceException ex) {
-                try {
-                    a = ex.getCause().getCause().getMessage();
-                    model.addAttribute("answer", a);
-                }
-                catch (NullPointerException e){
-                }
-            }
-            return "admin";
-        }
-        else if(sqlreq.toLowerCase().contains("describe")){
-            List<Object[]> list = null;
-            try {
-                list = myQueryService.createQuery(sqlreq);
-                for (Object[] i : list) {
-                    int k = 0;
+                } else if (sqlreq.toLowerCase().contains("show")||sqlreq.toLowerCase().contains("describe")) {
+                    List<Object[]> list = null;
                     try {
-                        while (true) {
-                            a+=(i[k]+" ");
-                            k++;
+                        list = myQueryService.createQuery(sqlreq);
+                        model.addAttribute("allString", list);
+                        model.addAttribute("allTables", tableList);
+                    } catch (SQLException | PersistenceException ex) {
+                        try {
+                            a = ex.getCause().getCause().getMessage();
+                            model.addAttribute("allTables", tableList);
+                            model.addAttribute("answer", a);
+                        } catch (NullPointerException e) {
                         }
                     }
-                    catch (ArrayIndexOutOfBoundsException e){
-                        a+="\n";
-                        continue;
+                } else {
+                    try {
+                        a = myQueryService.executeQuery(sqlreq);
+                    } catch (SQLException | PersistenceException ex) {
+                        try {
+                            a = ex.getCause().getCause().getMessage();
+                        } catch (NullPointerException e) {
+                        }
                     }
-                }
-                model.addAttribute("answer", a);
-            } catch (SQLException|PersistenceException ex) {
-                try {
-                    a = ex.getCause().getCause().getMessage();
+                    model.addAttribute("allTables", tableList);
                     model.addAttribute("answer", a);
                 }
-                catch (NullPointerException e){
-                }
             }
-            return "admin";
         }
         else {
-            try {
-                a = myQueryService.executeQuery(sqlreq);
-            } catch (SQLException | PersistenceException ex) {
-                try {
-                    a = ex.getCause().getCause().getMessage();
-                } catch (NullPointerException e) {
-                }
-            }
+            a = "You don't have access";
+            model.addAttribute("allTables", tableList);
             model.addAttribute("answer", a);
-
-            return "admin";
         }
+        return "admin";
     }
 
     void tableInfo() {
-        String a = "";
-        List<Object> tableList = null;
+        tableList=new ArrayList<>();
+        List<Object> tables = null;
         List<Object[]> tableDateList = null;
         try {
-            tableList = myQueryService.tableSearch();
-            for (Object i : tableList) {
-                a += i + ":";
-                tableDateList = myQueryService.tableDataSearch((String) i);
-                for (Object[] j : tableDateList) {
-                    int k = 0;
-                    try {
-                        while (true) {
-                            String b = (String) j[k];
-                            if (k == 0)
-                                a += (j[k] + ", ");
-                            k++;
+            tables = myQueryService.tableSearch();
+            for (Object name : tables) {
+                Table t = new Table();
+                if(!((String)name).equals("query") ) {
+                    if (!((String) name).equals("user")) {
+                        t.setName((String) name);
+                        tableDateList = myQueryService.tableDataSearch((String) name);
+                        for (Object[] fields : tableDateList) {
+                            int k = 0;
+                            try {
+                                t.addField((String) fields[k]);
+                            } catch (ArrayIndexOutOfBoundsException e) {
+                                continue;
+                            }
                         }
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        continue;
+                        tableList.add(t);
                     }
                 }
-                a += "   !   ";
             }
-            System.out.println(a);
         } catch (SQLException | PersistenceException ex) {
-            try {
-                a = ex.getCause().getCause().getMessage();
-                //model.addAttribute("answer", a);
-            } catch (NullPointerException e) {
-            }
         }
     }
 }
